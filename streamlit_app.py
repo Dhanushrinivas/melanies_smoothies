@@ -4,33 +4,41 @@ from snowflake.snowpark.functions import col
 import requests
 import pandas as pd
 
+# App Title
 st.title(":cup_with_straw: Customize Your Smoothie! :cup_with_straw:")
 
 st.write("Choose the fruits you want in your custom Smoothie!")
 
-# Input name
+# Name input
 name_on_order = st.text_input('Name on Smoothie:')
+
 st.write('The name on your Smoothie will be:', name_on_order)
 
-# Snowflake connection
+# Connect to Snowflake
 cnx = st.connection("snowflake")
 session = cnx.session()
 
-# Load fruit list
-my_dataframe = session.table("smoothies.public.fruit_options").select(col('FRUIT_NAME')).to_pandas()
+# Load fruit options from Snowflake table
+my_dataframe = session.table("smoothies.public.fruit_options").select(col('FRUIT_NAME'))
 
-fruit_list = my_dataframe["FRUIT_NAME"].tolist()
+# Convert to pandas for Streamlit
+fruit_df = my_dataframe.to_pandas()
 
-# Fruit selector
+# Extract list of fruits
+fruit_list = fruit_df["FRUIT_NAME"].tolist()
+
+# Multiselect for fruits
 ingredients_list = st.multiselect(
     'Choose up to 5 ingredients:',
     fruit_list,
     max_selections=5
 )
 
-# Convert list to string
+# If user selects fruits
 if ingredients_list:
+
     ingredients_string = ",".join(ingredients_list)
+
     st.write("Your ingredients:", ingredients_string)
 
     my_insert_stmt = f"""
@@ -38,20 +46,33 @@ if ingredients_list:
         VALUES ('{ingredients_string}', '{name_on_order}')
     """
 
+    st.write(my_insert_stmt)
+
     time_to_insert = st.button('Submit Order')
 
     if time_to_insert:
         session.sql(my_insert_stmt).collect()
         st.success(f"Your Smoothie is ordered, {name_on_order}! ✅")
 
-# Nutrition info from SmoothieFroot API
+# -------------------------------
+# SmoothieFroot Nutrition Section
+# -------------------------------
+
 for fruit_chosen in ingredients_list:
-    st.subheader(f"{fruit_chosen} Nutrition Information")
+
+    st.subheader(fruit_chosen + " Nutrition Information")
 
     smoothiefroot_response = requests.get(
         "https://my.smoothiefroot.com/api/fruit/" + fruit_chosen
     )
 
     if smoothiefroot_response.status_code == 200:
+
+        # Convert JSON → DataFrame
         sf_df = pd.DataFrame([smoothiefroot_response.json()])
+
+        # Display dataframe
         st.dataframe(sf_df, use_container_width=True)
+
+    else:
+        st.error("Failed to retrieve nutrition data.")
