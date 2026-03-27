@@ -4,7 +4,7 @@ from snowflake.snowpark.functions import col
 import requests
 
 
-# Title
+# App Title
 st.title(":cup_with_straw: Customize Your Smoothie! :cup_with_straw:")
 
 st.write("Choose the fruits you want in your custom Smoothie!")
@@ -14,11 +14,12 @@ name_on_order = st.text_input('Name on Smoothie:')
 
 st.write('The name on your Smoothie will be:', name_on_order)
 
+
 # Snowflake connection
 cnx = st.connection("snowflake")
 session = cnx.session()
 
-# Get fruit options from Snowflake
+# Load fruit list from Snowflake
 my_dataframe = session.table("smoothies.public.fruit_options").select(col('FRUIT_NAME'))
 
 ingredients_list = st.multiselect(
@@ -27,7 +28,7 @@ ingredients_list = st.multiselect(
     max_selections=5
 )
 
-# If fruits selected
+
 if ingredients_list:
 
     ingredients_string = ''
@@ -36,7 +37,7 @@ if ingredients_list:
 
         ingredients_string += fruit_chosen + ' '
 
-        st.subheader(fruit_chosen + " Nutrition Information")
+        st.subheader(fruit_chosen + ' Nutrition Information')
 
         smoothiefroot_response = requests.get(
             "https://my.smoothiefroot.com/api/fruit/" + fruit_chosen
@@ -46,6 +47,7 @@ if ingredients_list:
             data=smoothiefroot_response.json(),
             use_container_width=True
         )
+
 
     st.write("Your ingredients:", ingredients_string)
 
